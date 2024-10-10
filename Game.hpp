@@ -27,7 +27,7 @@ struct Button {
 
 enum MapBlock : uint8_t {
 	G = 0, //ground
-	B = 1 //barrier single
+	B = 1, //barrier single
 	V = 2, //barrier vert
 	H = 3, //barrier horiz
 	UR = 4, //barrier up right corner
@@ -53,8 +53,8 @@ struct Map {
 	uint32_t width = 10;
 	uint32_t height = 10;
 
-	static MapBlock grid_idx(int x, int y) {
-		return Blocks[y*width + x];
+	MapBlock grid_idx(int x, int y) {
+		return blocks[y*width + x];
 	}
 
 };
@@ -64,7 +64,7 @@ enum Direction : uint8_t {
 	right,
 	up,
 	down
-}
+};
 
 //state of one player in the game:
 struct Player {
@@ -82,7 +82,7 @@ struct Player {
 
 	//player state (sent from server):
 	glm::vec3 color = glm::vec3(1.0f, 1.0f, 1.0f);
-	Direction move_dir = Controls::right;
+	Direction move_dir = right;
 
 	float velocity = 1.0f;
 	float jumpVelocity = 2.0f;
@@ -104,7 +104,7 @@ struct Apple {
 	glm::ivec3 position;
 	AppleType type;
 
-	Apple(glm::ivec2 _p, AppleType _t) : position(_p), type(_t) {};
+	Apple(glm::ivec3 _p, AppleType _t) : position(_p), type(_t) {};
 };
 
 struct Game {
@@ -113,9 +113,8 @@ struct Game {
 	void remove_player(Player *); //remove player from game (may also, e.g., play some despawn anim)
 	
 	std::list<Apple> apples;
-	void place_apple();
-
-	glm::list<ivec2> valid_spawn_positions();
+	bool spawnApples(uint32_t applesToPlace);
+	std::list<glm::ivec2> valid_spawn_positions();
 
 
 	Map map{};

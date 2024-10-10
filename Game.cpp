@@ -75,13 +75,16 @@ bool Player::Controls::recv_controls_message(Connection *connection_) {
 //-----------------------------------------
 
 
-bool spawnApples(uint32_t applesToPlace) {
+bool Game::spawnApples(uint32_t applesToPlace) {
+	std::list<glm::ivec2> valid_apple_spawns = valid_spawn_positions();
+
 	if(applesToPlace > 1) {
-		std::list<ivec2> valid_apple_spawns = valid_spawn_positions();
+		
 
 		for(uint32_t i = 0; (i < applesToPlace) && (valid_apple_spawns.size() > 0); i++) {
 			uint32_t idx = mt() % valid_apple_spawns.size();
-			auto new_it = *std::advance(valid_apple_spawns.begin(), idx);
+			auto new_it = valid_apple_spawns.begin();
+			std::advance(new_it, idx);
 			glm::ivec2 new_pos = *new_it;
 			apples.emplace_back(glm::ivec3(new_pos.x, new_pos.y, 0), Normal);
 			valid_apple_spawns.erase(new_it);
@@ -90,7 +93,7 @@ bool spawnApples(uint32_t applesToPlace) {
 	}
 
 	if(valid_apple_spawns.size() == 0) {
-			return false
+			return false;ß
 	}
 	return true;
 }
@@ -109,7 +112,13 @@ Player *Game::spawn_player() {
 	player.block_positions.emplace_back(glm::ivec3(0, 0, 0));
 
 	std::list<glm::ivec2> spawn_positions = valid_spawn_positions();
-	glm::ivec2 spawn_pos = spawn_positions.size() > 0 ? *std::advance(spawn_positions.begin(), mt() % valid_spawn_positions.size()) : spawn_pos;
+	glm::ivec2 spawn_pos;
+	if(spawn_positions.size() > 0) {
+		auto it = spwan_positions.begin();
+		std::advance(it, mt() % valid_spawn_positions.size());
+		spawn_pos = *it;
+	}
+	//glm::ivec2 spawn_pos = spawn_positions.size() > 0 ? *std::advance(spawn_positions.begin(), mt() % valid_spawn_positions.size()) : spawn_pos;
 	player.block_positions[player.block_positions.size() - 1] = glm::ivec3(spawn_pos.x, spawn_pos.y, 0);
 
 
