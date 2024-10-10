@@ -1,6 +1,11 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#include "Scene.hpp"
+
+#include "LitColorTextureProgram.hpp"
+#include "gl_errors.hpp"
+#include "data_path.hpp"
 
 #include <string>
 #include <list>
@@ -101,8 +106,8 @@ enum AppleType : uint8_t {
 };
 
 struct Apple {
-	glm::ivec3 position;
-	AppleType type;
+	glm::ivec3 position = glm::ivec3(0, 0, 0);
+	AppleType type = Normal;
 
 	Apple(glm::ivec3 _p, AppleType _t) : position(_p), type(_t) {};
 };
@@ -111,7 +116,8 @@ struct Game {
 	std::list< Player > players; //(using list so they can have stable addresses)
 	Player *spawn_player(); //add player the end of the players list (may also, e.g., play some spawn anim)
 	void remove_player(Player *); //remove player from game (may also, e.g., play some despawn anim)
-	
+	bool gamePlaying = false;
+
 	std::list<Apple> apples;
 	bool spawnApples(uint32_t applesToPlace);
 	std::list<glm::ivec2> valid_spawn_positions();

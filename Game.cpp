@@ -1,3 +1,4 @@
+#include "Mesh.hpp"
 #include "Game.hpp"
 
 #include "Connection.hpp"
@@ -93,7 +94,7 @@ bool Game::spawnApples(uint32_t applesToPlace) {
 	}
 
 	if(valid_apple_spawns.size() == 0) {
-			return false;ß
+			return false;
 	}
 	return true;
 }
@@ -114,8 +115,8 @@ Player *Game::spawn_player() {
 	std::list<glm::ivec2> spawn_positions = valid_spawn_positions();
 	glm::ivec2 spawn_pos;
 	if(spawn_positions.size() > 0) {
-		auto it = spwan_positions.begin();
-		std::advance(it, mt() % valid_spawn_positions.size());
+		auto it = spawn_positions.begin();
+		std::advance(it, mt() % spawn_positions.size());
 		spawn_pos = *it;
 	}
 	//glm::ivec2 spawn_pos = spawn_positions.size() > 0 ? *std::advance(spawn_positions.begin(), mt() % valid_spawn_positions.size()) : spawn_pos;
@@ -146,11 +147,11 @@ void Game::remove_player(Player *player) {
 	assert(found);
 }
 
-std::list<ivec2> Game::valid_spawn_positions() {
-	std::list<ivec2> valid_spawns;
-	for(int y = 0; y < height; y++) {
-			for(int x = 0; x < width; x++) {
-				if(map.grid_idx(x, y) != B) {
+std::list<glm::ivec2> Game::valid_spawn_positions() {
+	std::list<glm::ivec2> valid_spawns;
+	for(int y = 0; y < map.height; y++) {
+			for(int x = 0; x < map.width; x++) {
+				if(map.grid_idx(x, y) == G) {
 					valid_spawns.emplace_back(glm::ivec2(x, y));
 				}
 			}
@@ -159,12 +160,12 @@ std::list<ivec2> Game::valid_spawn_positions() {
 		for (auto &p1 : players) {
 			for(auto block : p1.block_positions) {
 				if (block.z > 0) continue;
-				valid_spawns.remove(block.xy);
+				valid_spawns.remove(glm::ivec2(block.x, block.y));
 			}
 		}
 
 		for (auto &a : apples) {
-			valid_spawns.remove(a.xy);
+			valid_spawns.remove(glm::ivec2(a.position.x, a.position.y));
 		}
 
 	return valid_spawns;
@@ -176,15 +177,18 @@ void Game::update(float elapsed) {
 	int32_t applesToPlace = 0;
 	for (auto &p : players) {
 
-		auto move_valid = [&](Button move_dir) {
+		auto move_valid = [&](Direction move_dir) {
 			if(p.block_positions.size() <= 1) return true;
-			glm::ivec3 h_pos = p.block_position.back();
+			glm::ivec3 h_pos = p.block_positions.back();
 			glm::ivec3 n_pos = *std::prev(p.block_positions.end(), 2);
 			if(move_dir == right && ((h_pos.x == (map.width-1) && n_pos.x != 0) || (n_pos.x <= h_pos.x))) return true;
 			if(move_dir == left && ((h_pos.x == 0 && n_pos.x != (map.width-1)) || (n_pos.x >= h_pos.x))) return true;
 			if(move_dir == up && ((h_pos.y == (map.height-1) && n_pos.y != 0) || (n_pos.y <= h_pos.y))) return true;
 			if(move_dir == down && ((h_pos.y == 0 && n_pos.y != (map.height-1)) || (n_pos.y <= h_pos.y))) return true;
-		}
+			return false;
+		};
+
+
 
 		glm::ivec3 vel = glm::ivec3(0, 0, 0);
 		if (p.controls.left.pressed && move_valid(left)) {
@@ -224,7 +228,7 @@ void Game::update(float elapsed) {
 
 
 			glm::ivec3 new_head_pos = p.block_positions.back() + vel;
-			new_head_pos.z = std::static_cast<int>(std::floor(p.zHeight));
+			new_head_pos.z = (int)std::floor(p.zHeight);
 
 			//check for collision with apples
 			bool hit_apple = false;
@@ -266,23 +270,24 @@ void Game::update(float elapsed) {
 		for (auto &p2 : players) {
 			//head / player collisions
 			for(auto block : p2.block_positions) {
-				if(head_pos == block);
-				//kill p1 !
-				p1.alive = false;
-				break;
+				if(head_pos == block) {
+					//kill p1 !
+					p1.alive = false;
+					break;
+				}
 			}
 		}
 
 		//player grid collisions
-		if(map.grid(head_pos.x, head_pos.y) == B) {
+		if(map.grid_idx(head_pos.x, head_pos.y) == B) {
 			p1.alive = false;
 		}
 		
 	}
 
+	bool gamePlaying = spawnApples(applesToPlace);
+	if(gamePlaying) return;
 
-	bool gameOver = spawnApples(applesToPlace);
-	
 }
 
 
@@ -302,6 +307,8 @@ void Game::send_state_message(Connection *connection_, Player *connection_player
 	auto send_player = [&](Player const &player) {
 		connection.send(player.color);
 		connection.send(player.move_dir);
+		connection.send(player.zHeight);
+		connection.send(player.alive);
 	
 		uint32_t len = uint32_t(player.block_positions.size());
 		connection.send(len);
@@ -320,12 +327,12 @@ void Game::send_state_message(Connection *connection_, Player *connection_player
 	//map count
 	connection.send(uint32_t(map.width));
 	connection.send(uint32_t(map.height));
-	connection.send_buffer.insert(connection.send_buffer.end(), player.name.begin(), map.blocks.begin() + width*height);
+	connection.send_buffer.insert(connection.send_buffer.end(), map.blocks.begin(), map.blocks.begin() + map.width*map.height);
 
 	//apple count
-	connections.send(uint32_t(apples.size()));
-	for(uint32_t i = 0; i < apples.size(); i++) {
-		connection.send(apples[i]);
+	connection.send(uint32_t(apples.size()));
+	for(auto it = apples.begin(); it != apples.end(); it++) {
+		connection.send(*it);
 	}
 
 	//player count:
@@ -368,7 +375,7 @@ bool Game::recv_state_message(Connection *connection_) {
 
 	read(&map.width);
 	read(&map.height);
-	if(map.blocks.size <= 0) map.blocks.reserve(width*height);
+	if(map.blocks.size() <= 0) map.blocks.reserve(map.width*map.height);
 	for(uint32_t i = 0; i < map.width*map.height; i++) {
 		MapBlock m;
 		read(&m);
@@ -378,11 +385,10 @@ bool Game::recv_state_message(Connection *connection_) {
 	uint32_t applesSize;
 	read(&applesSize);
 	apples.clear();
-	apples.reserve(applesSize);
 	for(uint32_t i = 0; i < applesSize; i++) {
-		Apple a;
+		Apple a(glm::ivec3(0, 0, 0), Normal);
 		read(&a);
-		apples[i] = a;
+		apples.emplace_back(a);
 	}
 
 	players.clear();
@@ -391,21 +397,25 @@ bool Game::recv_state_message(Connection *connection_) {
 	for (uint8_t i = 0; i < player_count; ++i) {
 		players.emplace_back();
 		Player &player = players.back();
-		read(&player.position);
-		read(&player.velocity);
 		read(&player.color);
+		read(&player.move_dir);
+		read(&player.zHeight);
+		read(&player.alive);
+	
 
-		uomt8_t block_positions_len;
+
+		uint8_t block_positions_len = 0;
 		read(&block_positions_len);
-		player.block_positions = std::vector<glm::uvec2>;
-		for (uint8_t n = 0; n < name_len; ++n) {
-			char c;
-			read(&c);
-			player.name += c;
+		player.block_positions = std::vector<glm::ivec3>();
+		player.block_positions.reserve(block_positions_len);
+		for (uint32_t b = 0; b < block_positions_len; ++b) {
+			glm::ivec3 p;
+			read(&p);
+			player.block_positions.emplace_back(p);
 		}
 
 
-		uint8_t name_len;
+		uint8_t name_len = 0;
 		read(&name_len);
 		//n.b. would probably be more efficient to directly copy from recv_buffer, but I think this is clearer:
 		player.name = "";

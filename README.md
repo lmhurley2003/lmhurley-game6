@@ -1,8 +1,8 @@
-# (TODO: your game's title)
+Snake 99
 
-Author: (TODO: your name)
+Author: Lucas Hurley
 
-Design: (TODO: In two sentences or fewer, describe what is new and interesting about your game.)
+Design: This is a multiplayer version of snake, where the player must eat apples while dodging other players' snakes and also barrriers in the environment. As a slight twist I also added a jump for a bit more of a movement option.
 
 Networking: (TODO: How does your game implement client/server multiplayer? What messages are transmitted? Where in the code?)
 
@@ -12,9 +12,7 @@ Screen Shot:
 
 How To Play:
 
-(TODO: describe the controls and (if needed) goals/strategy.)
-
-Sources: (TODO: list a source URL for any assets you did not create yourself. Make sure you have a license for the asset.)
+Use WASD to control the snake, space to jump.
 
 This game was built with [NEST](NEST.md).
 

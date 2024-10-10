@@ -39,13 +39,13 @@ Load< Scene > snake_scene(LoadTagDefault, []() -> Scene const * {
 
 PlayMode::PlayMode(Client &client_) : client(client_), scene(*snake_scene) {
 	for (auto &drawable : scene.drawables) {
-		if (drawable->transform.name == "GridCube") gridCubePrefab = drawable.pipeline;
-		else if (drawable->transform.name == "SnakeCube") snakeCubePrefab = drawable.pipeline;
-		else if (drawable->transform.name == "SnakeHead") snakeHeadPrefab = drawable.pipeline;
-		else if (drawable->transform.name == "BarrierSingle") barrierSinglePrefab = drawable.pipeline;
-		else if (drawable->transform.name == "BarrierLong") barrierLongPrefab = drawable.pipeline;
-		else if (drawable->transform.name == "BarrierCorner") barrierCornerPrefab = drawable.pipeline;
-		else if (drawable->transform.name == "Apple") applePrefab = drawable.pipeline;
+		if (drawable.transform->name == "GridCube") gridCubePrefab = drawable.pipeline;
+		else if (drawable.transform->name == "SnakeCube") snakeCubePrefab = drawable.pipeline;
+		else if (drawable.transform->name == "SnakeHead") snakeHeadPrefab = drawable.pipeline;
+		else if (drawable.transform->name == "BarrierSingle") barrierSinglePrefab = drawable.pipeline;
+		else if (drawable.transform->name == "BarrierLong") barrierLongPrefab = drawable.pipeline;
+		else if (drawable.transform->name == "BarrierCorner") barrierCornerPrefab = drawable.pipeline;
+		else if (drawable.transform->name == "Apple") applePrefab = drawable.pipeline;
 	}
 
 	//send/receive data:
@@ -71,33 +71,38 @@ PlayMode::PlayMode(Client &client_) : client(client_), scene(*snake_scene) {
 		}
 	}, 0.0);
 
-	assert(game.map.width*game.map.height > 0 + "no map loaded");
+	assert(game.map.width*game.map.height > 0);
 	for (uint32_t y = 0; y < game.map.height; y++) {
-		for(uint32_t x = 0; x < game.width; x++) {
-			MapBlock block = map.grid_idx(x, y);
-			Scene::Drawable drawable;
-			drawable.transform.position = glm::vec3(float(x), float(y), 0.0f);
+		for(uint32_t x = 0; x < game.map.width; x++) {
+			MapBlock block = game.map.grid_idx(x, y);
+			Scene::Transform transform;
+			transform.position = glm::vec3(float(x), float(y), 0.0f);
+			Scene::Drawable::Pipeline pipeline;
 			if(block == G) {
-				drawable.pipeline = gridCubePrefab;
+				pipeline = gridCubePrefab;
 			} else if (block == B) {
-				drawable.pipeline = barrierSinglePrefab;
+				pipeline = barrierSinglePrefab;
 			} else if (block == V) {
-				drawable.pipeline = barrierLongPrefab;
+				pipeline = barrierLongPrefab;
 			} else if (block == H) {
-				drawable.pipeline = barrierLongPrefab;
-				drawable.transform.rotation *= glm::angleAxis(90.0f, glm::vec3(0.0f, 0.0f, 1.0f));
+				pipeline = barrierLongPrefab;
+				transform.rotation *= glm::angleAxis(90.0f, glm::vec3(0.0f, 0.0f, 1.0f));
 			} else if (block == UR) {
-				drawable.pipeline = barrierCornerPrefab;
+				pipeline = barrierCornerPrefab;
 			} else if (block == UL) {
-				drawable.pipeline = barrierCornerPrefab;
-				drawable.transform.rotation *= glm::angleAxis(90.0f, glm::vec3(0.0f, 0.0f, 1.0f));
+				pipeline = barrierCornerPrefab;
+				transform.rotation *= glm::angleAxis(90.0f, glm::vec3(0.0f, 0.0f, 1.0f));
 			} else if (block == UL) {
-				drawable.pipeline = barrierCornerPrefab;
-				drawable.transform.rotation *= glm::angleAxis(180.0f, glm::vec3(0.0f, 0.0f, 1.0f));
+				pipeline = barrierCornerPrefab;
+				transform.rotation *= glm::angleAxis(180.0f, glm::vec3(0.0f, 0.0f, 1.0f));
 			} else if (block == UL) {
-				drawable.pipeline = barrierCornerPrefab;
-				drawable.transform.rotation *= glm::angleAxis(270.0f, glm::vec3(0.0f, 0.0f, 1.0f));
+				pipeline = barrierCornerPrefab;
+				transform.rotation *= glm::angleAxis(270.0f, glm::vec3(0.0f, 0.0f, 1.0f));
 			}
+			scene.transforms.emplace_back(transform);
+			Scene::Drawable drawable(&scene.transforms.back());
+			scene.drawables.emplace_back(drawable);
+			scene.drawables.back().pipeline = pipeline;
 		}
 	}
 
